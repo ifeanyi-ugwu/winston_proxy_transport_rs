@@ -2,6 +2,11 @@
 name = "winston_proxy_transport"
 version = "0.1.0"
 edition = "2021"
+description = "a proxy transport"
+license = "MIT"
+documentation = "https://docs.rs/winston_proxy_transport"
+repository = "https://github.com/ifeanyi-ugwu/winston_proxy_transport_rs"
+authors = ["ifeanyi ugwu"]
 
 [dependencies]
 logform = "0.3.1"
