@@ -59,7 +59,7 @@ impl Transport for ProxyTransport {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use logform::{json, timestamp};
+    use logform::{json, timestamp, Format};
     use std::sync::Mutex;
 
     struct MockTransport {
@@ -111,8 +111,8 @@ mod tests {
         let target_transport = Arc::new(MockTransport::new());
 
         let log = LogInfo::new("test", "Test message");
-        let log = timestamp().transform(log.clone(), None).unwrap();
-        let log = json().transform(log.clone(), None).unwrap();
+        let log = timestamp().transform(log.clone()).unwrap();
+        let log = json().transform(log.clone()).unwrap();
 
         let delegation_interval = Duration::from_secs(1);
         let proxy_transport = ProxyTransport::new(
