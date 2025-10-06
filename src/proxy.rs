@@ -1,7 +1,7 @@
 use std::{sync::Arc, thread, time::Duration};
 use winston_transport::{LogQuery, Transport};
 
-pub trait Proxy<T>: Transport<T> + Send + Sync {
+pub trait Proxy<T>: Transport<T> {
     /// Proxies logs from this transport to another transport
     /// Returns the number of logs transferred
     fn proxy(&self, target: &dyn Proxy<T>) -> Result<usize, String>;
@@ -11,14 +11,14 @@ pub trait Proxy<T>: Transport<T> + Send + Sync {
 }
 
 pub struct ProxyTransport<T> {
-    source_transport: Arc<dyn Proxy<T>>,
-    target_transport: Arc<dyn Proxy<T>>,
+    source_transport: Arc<dyn Proxy<T> + Send + Sync>,
+    target_transport: Arc<dyn Proxy<T> + Send + Sync>,
 }
 
-impl<T: Send + Sync + 'static> ProxyTransport<T> {
+impl<T: 'static> ProxyTransport<T> {
     pub fn new(
-        source_transport: Arc<dyn Proxy<T>>,
-        target_transport: Arc<dyn Proxy<T>>,
+        source_transport: Arc<dyn Proxy<T> + Send + Sync>,
+        target_transport: Arc<dyn Proxy<T> + Send + Sync>,
         delegation_interval: Duration,
     ) -> Self {
         let source_transport_clone = source_transport.clone();
