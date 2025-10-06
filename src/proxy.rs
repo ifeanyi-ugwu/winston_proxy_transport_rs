@@ -1,25 +1,24 @@
-use logform::LogInfo;
 use std::{sync::Arc, thread, time::Duration};
 use winston_transport::{LogQuery, Transport};
 
-pub trait Proxy: Transport<LogInfo> + Send + Sync {
+pub trait Proxy<T>: Transport<T> + Send + Sync {
     /// Proxies logs from this transport to another transport
     /// Returns the number of logs transferred
-    fn proxy(&self, target: &dyn Proxy) -> Result<usize, String>;
+    fn proxy(&self, target: &dyn Proxy<T>) -> Result<usize, String>;
 
     /// Ingest logs in batch
-    fn ingest(&self, logs: Vec<LogInfo>) -> Result<(), String>;
+    fn ingest(&self, logs: Vec<T>) -> Result<(), String>;
 }
 
-pub struct ProxyTransport {
-    source_transport: Arc<dyn Proxy>,
-    target_transport: Arc<dyn Proxy>,
+pub struct ProxyTransport<T> {
+    source_transport: Arc<dyn Proxy<T>>,
+    target_transport: Arc<dyn Proxy<T>>,
 }
 
-impl ProxyTransport {
+impl<T: Send + Sync + 'static> ProxyTransport<T> {
     pub fn new(
-        source_transport: Arc<dyn Proxy>,
-        target_transport: Arc<dyn Proxy>,
+        source_transport: Arc<dyn Proxy<T>>,
+        target_transport: Arc<dyn Proxy<T>>,
         delegation_interval: Duration,
     ) -> Self {
         let source_transport_clone = source_transport.clone();
@@ -38,12 +37,12 @@ impl ProxyTransport {
     }
 }
 
-impl Transport<LogInfo> for ProxyTransport {
-    fn log(&self, info: LogInfo) {
+impl<T> Transport<T> for ProxyTransport<T> {
+    fn log(&self, info: T) {
         self.source_transport.log(info);
     }
 
-    fn query(&self, options: &LogQuery) -> Result<Vec<LogInfo>, String> {
+    fn query(&self, options: &LogQuery) -> Result<Vec<T>, String> {
         let mut logs = self.source_transport.query(options)?;
         logs.extend(self.target_transport.query(options)?);
         Ok(logs)
@@ -59,6 +58,7 @@ impl Transport<LogInfo> for ProxyTransport {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use logform::LogInfo;
     use logform::{json, timestamp, Format};
     use std::sync::Mutex;
 
@@ -74,8 +74,8 @@ mod tests {
         }
     }
 
-    impl Proxy for MockTransport {
-        fn proxy(&self, target: &dyn Proxy) -> Result<usize, String> {
+    impl Proxy<LogInfo> for MockTransport {
+        fn proxy(&self, target: &dyn Proxy<LogInfo>) -> Result<usize, String> {
             let mut logs = self.logs.lock().unwrap();
             let count = logs.len();
 
