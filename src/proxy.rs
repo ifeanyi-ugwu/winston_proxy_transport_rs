@@ -2,7 +2,7 @@ use logform::LogInfo;
 use std::{sync::Arc, thread, time::Duration};
 use winston_transport::{LogQuery, Transport};
 
-pub trait Proxy: Transport {
+pub trait Proxy: Transport<LogInfo> + Send + Sync {
     /// Proxies logs from this transport to another transport
     /// Returns the number of logs transferred
     fn proxy(&self, target: &dyn Proxy) -> Result<usize, String>;
@@ -38,7 +38,7 @@ impl ProxyTransport {
     }
 }
 
-impl Transport for ProxyTransport {
+impl Transport<LogInfo> for ProxyTransport {
     fn log(&self, info: LogInfo) {
         self.source_transport.log(info);
     }
@@ -94,7 +94,7 @@ mod tests {
         }
     }
 
-    impl Transport for MockTransport {
+    impl Transport<LogInfo> for MockTransport {
         fn log(&self, info: LogInfo) {
             let _ = self.ingest(vec![info]);
         }
